@@ -4,6 +4,7 @@
  * and open the template in the editor.
  */
 package rareburden.rareburden;
+import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.Genotype;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFFileReader;
@@ -23,8 +24,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.DoubleAdder;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.docopt.Docopt;
@@ -38,7 +37,7 @@ public class Main {
     private static VCFFileReader vcfreader = null;
     private static List<String> samplelist = null;
     private static Set<String>  sampleset = null;
-    private static final StringJoiner sjoiner = new StringJoiner(":");
+//    private static final StringJoiner SJIONER = new StringJoiner(":");
     private static final DecimalFormat FORMAT = new DecimalFormat("#.####E0");
     private static double max_maf = 1;
     
@@ -64,8 +63,8 @@ public class Main {
                 + "  -s file       Sample list file, one line per sample. !\n"
                 + "                Load all samples from vcf if this option is off.\n"
                 + "  --test txt    Specify the ways to compute burden score for each individual.\n"
-                + "                b.collapse: count the number of rare(alt) alleles for each individual.\n"
-                + "                b.collapse.weight: sum(alt_count*variant_weight).\n"
+                + "                b.burden: count the number of rare(alt) alleles for each individual.\n"
+                + "                b.burden.weight: sum(alt_count*variant_weight).\n"
                 + "  --max-maf double Only keep variant with maf <= max-maf.\n"
                 + "  -t cpus       Number of cpus for computing.\n"
                 + "  -h --help     Show this screen.\n"
@@ -254,7 +253,10 @@ public class Main {
     //                    double af = (vc.getHetCount()/2.0 + vc.getHomVarCount())/total_count;
                 int num_called_alleles = vc.getCalledChrCount();
                 int num_called_ref_allels = vc.getCalledChrCount(vc.getReference());
-                if (num_called_alleles-num_called_ref_allels == 1) {
+                int num_called_alt_alleles = num_called_alleles-num_called_ref_allels;
+                // if (num_called_alleles-num_called_ref_allels == 1) {
+                // match with epacts, ref as rare.
+                if (num_called_alt_alleles == 1 || num_called_ref_allels == 1) {
                     NUM_SINGLETON[0] +=1;
 //                      NUM_SINGLETON[0].addAndGet(1);
                 }
@@ -274,8 +276,20 @@ public class Main {
                 //cumulation of scores for each individual.
                 Iterable<Genotype> genotypes = vc.getGenotypesOrderedBy(samplelist);
                 int i = 0; 
+                //determine the rare allele. Please spit the multi-allic alleles.
+//                Allele rare = vc.getAlleles().get(0);
+//                if (num_called_ref_allels < num_called_alt_alleles){rare = vc.getReference();}
+                
                 for (Genotype g : genotypes) {
-                    double score = (2-g.countAllele(vc.getReference())) * snp_weight;
+//                    double score = (2-g.countAllele(vc.getReference())) * snp_weight;
+                    double score = 0;
+                    // add the possible ref as extreme rare allele.
+                    if (num_called_ref_allels > num_called_alt_alleles){
+                        score = (2-g.countAllele(vc.getReference())) * snp_weight;
+                    }else{
+                        score = g.countAllele(vc.getReference()) * snp_weight;
+                    }
+                    
                     if (g.isNoCall()) { score = 0;} // missing set the weight as ref_alleles.
                     ID_SUM_SCORES[i++] += score;
 //                    System.err.println("score: " + score);
