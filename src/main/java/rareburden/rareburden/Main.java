@@ -76,7 +76,7 @@ public class Main {
      */
     public static void main(String[] args) {
         Map<String, Object> opts =
-        new Docopt(DOC).withVersion("0.1").parse(args);
+        new Docopt(DOC).withVersion("0.2").parse(args);
 
         if(opts.get("-t") != null){   
             System.setProperty("java.util.concurrent.ForkJoinPool.common.parallelism", (String) opts.get("-t"));
@@ -141,12 +141,12 @@ public class Main {
         System.out.println(sj.toString());
         
         String TEST = (String)opts.get("--test");
-        if (TEST.equalsIgnoreCase("b.collapse")) {
+        if (TEST.equalsIgnoreCase("b.burden")) {
             run(false);
-        }else if (TEST.equalsIgnoreCase("b.collapse.weight")) {
+        }else if (TEST.equalsIgnoreCase("b.burden.weight")) {
             run(true);
         }else{
-            System.err.println("ERROR: Please set a proper value for --test");
+            System.err.println("ERROR: Please set a proper value for --test: b.burden | b.burden.weight");
             System.exit(-1);
         }
 //        run();
