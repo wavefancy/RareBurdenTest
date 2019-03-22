@@ -1,0 +1,6 @@
+Dict{String,Any}("--version"=>false,"-p"=>"MI","-i"=>"IND_ID","--help"=>false,"-f"=>"MI.ped","-c"=>"SEX,pc1,pc2,pc3,pc4,pc5,pc6,pc7,pc8,pc9,pc10,ATVB_Agilent,EOMI_Agilent,PROCARDIS_Agilent,ARIC_Nextera,REGICOR_ICE,Lubeck_ICE,Leicester_ICE,BRAVE_Nextera,OHS_Agilent,MUNICH_ICE,PROMIS_Agilent,PROMIS_Nextera")SubString{String}["SEX", "pc1", "pc2", "pc3", "pc4", "pc5", "pc6", "pc7", "pc8", "pc9", "pc10", "ATVB_Agilent", "EOMI_Agilent", "PROCARDIS_Agilent", "ARIC_Nextera", "REGICOR_ICE", "Lubeck_ICE", "Leicester_ICE", "BRAVE_Nextera", "OHS_Agilent", "MUNICH_ICE", "PROMIS_Agilent", "PROMIS_Nextera"]
+AbstractString[]
+AbstractString["MI", "IND_ID", "SEX", "pc1", "pc2", "pc3", "pc4", "pc5", "pc6", "pc7", "pc8", "pc9", "pc10", "ATVB_Agilent", "EOMI_Agilent", "PROCARDIS_Agilent", "ARIC_Nextera", "REGICOR_ICE", "Lubeck_ICE", "Leicester_ICE", "BRAVE_Nextera", "OHS_Agilent", "MUNICH_ICE", "PROMIS_Agilent", "PROMIS_Nextera"]
+MI~SEX+pc1+pc2+pc3+pc4+pc5+pc6+pc7+pc8+pc9+pc10+ATVB_Agilent+EOMI_Agilent+PROCARDIS_Agilent+ARIC_Nextera+REGICOR_ICE+Lubeck_ICE+Leicester_ICE+BRAVE_Nextera+OHS_Agilent+MUNICH_ICE+PROMIS_Agilent+PROMIS_Nextera
+0
+AbstractString["0001A", "0002A", "0003A", "0004A", "0005A", "0006A", "0007A", "0007B", "NS", "FRAC_WITH_RARE", "PVALUE", "BETA", "SEBETA", "ZSTAT"]
