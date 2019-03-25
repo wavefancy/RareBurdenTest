@@ -4,7 +4,6 @@
  * and open the template in the editor.
  */
 package rareburden.rareburden;
-import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.Genotype;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFFileReader;
@@ -45,13 +44,14 @@ public class Main {
                 "Compute gene burden score for each individual.\n"
                 + "\n"
                 + "Usage:\n"
-                + "  RareBurdenScore -g file -v bgzfile --test txt [-s file] [--max-maf double] [-t cpus]\n"
+                + "  RareBurdenScore -g file -v bgzfile --test txt [-s file] [--max-maf double] [--index file]\n"
                 + "  RareBurdenScore (-h | --help)\n"
                 + "  RareBurdenScore --version\n"
                 + "\n"
                 + "---------------------------\n"
                 + "1. Output results to stdout.\n"
                 + "2. Imupte the vcf missing value as ref allele.\n"
+                + "3. *** htsjdk can not be called in parallel, will have strange unpredictable behaviors. \n"
                 + "---------------------------\n"
                 + "\n"
                 + "Options:\n"
@@ -60,13 +60,14 @@ public class Main {
                 + "                eg.: group_name 20:1110696:A:G,T:2 20:1234590:G:GTC:2\n"
                 + "                     group_name 20:14370:G:A 20:1234590:G:GTC\n"
                 + "  -v bgzfile    Bgziped and tabix indexed vcf file.\n"
+                + "  --index file  Tabix index file name, default bgzfile.tbi.\n"
                 + "  -s file       Sample list file, one line per sample. !\n"
                 + "                Load all samples from vcf if this option is off.\n"
                 + "  --test txt    Specify the ways to compute burden score for each individual.\n"
                 + "                b.burden: count the number of rare(alt) alleles for each individual.\n"
                 + "                b.burden.weight: sum(alt_count*variant_weight).\n"
                 + "  --max-maf double Only keep variant with maf <= max-maf.\n"
-                + "  -t cpus       Number of cpus for computing.\n"
+//                + "  -t cpus       Number of cpus for computing.\n"
                 + "  -h --help     Show this screen.\n"
                 + "  --version     Show version.\n"
                 + "\n";
@@ -76,12 +77,13 @@ public class Main {
      */
     public static void main(String[] args) {
         Map<String, Object> opts =
-        new Docopt(DOC).withVersion("0.2").parse(args);
-
-        if(opts.get("-t") != null){   
-            System.setProperty("java.util.concurrent.ForkJoinPool.common.parallelism", (String) opts.get("-t"));
-        }
-        
+        // version 0.3, no parallel, behaviour strange to hstjdk
+        new Docopt(DOC).withVersion("0.3-htsjdk-no-parallel").parse(args);
+//
+//        if(opts.get("-t") != null){   
+//            System.setProperty("java.util.concurrent.ForkJoinPool.common.parallelism", (String) opts.get("-t"));
+//        }
+//        
         try {
 //            String gfile = "/Users/wallace/NetBeansProjects/RareBurden/Test/test.group.txt";
             String gfile = (String) opts.get("-g");
@@ -108,7 +110,7 @@ public class Main {
         String vcfString = (String) opts.get("-v");
         File VCF = new File(vcfString);
         File VCF_TBI = new File(vcfString + ".tbi");
-        
+        if(opts.get("--index") != null){ VCF_TBI = new File((String) opts.get("--index"));}
 //        System.out.println("RareBurdenScore.Main.main()");
         
         vcfreader  = new VCFFileReader(VCF, VCF_TBI, true);
@@ -160,7 +162,7 @@ public class Main {
         //iterate gene by gene
         group_file_reader.lines()
            .filter(l -> l.trim().length()>0)
-           .parallel()
+//           .parallel()
            .forEach(group->{
                collapseScore(decodeGroupString(group),with_weight); //count the number of rare alleles.
            });
@@ -281,16 +283,18 @@ public class Main {
 //                if (num_called_ref_allels < num_called_alt_alleles){rare = vc.getReference();}
                 
                 for (Genotype g : genotypes) {
-//                    double score = (2-g.countAllele(vc.getReference())) * snp_weight;
+//                  no weight update if value is missing. 
+//                  The same to impute as common genotype.
+                    if (g.isNoCall()) { continue;} // missing set the weight as ref_alleles.
+                    
                     double score = 0;
                     // add the possible ref as extreme rare allele.
-                    if (num_called_ref_allels > num_called_alt_alleles){
+                    if (num_called_ref_allels > num_called_alt_alleles){ //counting rare, alt.
                         score = (2-g.countAllele(vc.getReference())) * snp_weight;
-                    }else{
+                    }else{ //counting rare, ref. ref is rare.
                         score = g.countAllele(vc.getReference()) * snp_weight;
                     }
                     
-                    if (g.isNoCall()) { score = 0;} // missing set the weight as ref_alleles.
                     ID_SUM_SCORES[i++] += score;
 //                    System.err.println("score: " + score);
 //                      ID_SUM_SCORES[i++].addAndGet(score);
