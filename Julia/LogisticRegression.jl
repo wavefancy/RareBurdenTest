@@ -42,7 +42,7 @@ outdatamatrix = args["--datamatrix"] #auto parse as false/true
 # println(covars)
 df = CSV.File(path,header=1,delim='\t',missingstring="NA") |> DataFrame
 # convert to string to do match later based on idname.
-df[Symbol(idname)] = map(repr,df[Symbol(idname)])
+df[Symbol(idname)] = map(string,df[Symbol(idname)])
 # df = load(Stream(format"CSV", path),delim='\t',header_exists=true) |> DataFrame
 # load(Stream(format"CSV", io)
 # println(first(df, 3))
