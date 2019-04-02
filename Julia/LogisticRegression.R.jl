@@ -38,15 +38,18 @@ args = docopt(doc, version=v"1.0")
 # print(args)
 
 path=args["-f"]
-df = CSV.File(path,header=1,delim='\t',missingstring="NA") |> DataFrame
-# df = load(Stream(format"CSV", path),delim='\t',header_exists=true) |> DataFrame
-# load(Stream(format"CSV", io)
-# println(first(df, 3))
-
 pheno = args["-p"]
 idname = args["-i"]
 covars = args["-c"] == nothing ? []  : split(args["-c"],",")
 # println(covars)
+
+df = CSV.File(path,header=1,delim='\t',missingstring="NA") |> DataFrame
+# convert to string to do match later based on idname.
+df[Symbol(idname)] = map(string,df[Symbol(idname)])
+
+# df = load(Stream(format"CSV", path),delim='\t',header_exists=true) |> DataFrame
+# load(Stream(format"CSV", io)
+# println(first(df, 3))
 
 # check pheno and covariates whether in ped file.
 check_names = vcat(pheno, idname, covars)

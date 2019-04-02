@@ -6,7 +6,7 @@ doc = """Do logistic regression for rare variant burden test.
 binary_phenotype ~ burden_score + covariates.
 
 Usage:
-    LogisticRegression.jl -f file -p pheno -i id [-c covariates]
+    LogisticRegression.jl -f file -p pheno -i id [-c covariates] [--datamatrix]
     LogisticRegression.jl -h | --help | --version
 
 Notes:
@@ -20,6 +20,7 @@ Options:
     -p pheno      Phenotype name.
     -i id         Column name for individual id.
     -c covariates Specifiy covariates, eg.: cov1,cov2|cov1.
+    --datamatrix  Output datamatrix used to do glm to stderr.
     -h --help     Show this screen.
     --version     Show version.
 """
@@ -34,15 +35,17 @@ args = docopt(doc, version=v"1.0")
 # print(args)
 
 path=args["-f"]
-df = CSV.File(path,header=1,delim='\t',missingstring="NA") |> DataFrame
-# df = load(Stream(format"CSV", path),delim='\t',header_exists=true) |> DataFrame
-# load(Stream(format"CSV", io)
-# println(first(df, 3))
-
 pheno = args["-p"]
 idname = args["-i"]
 covars = args["-c"] == nothing ? []  : split(args["-c"],",")
+outdatamatrix = args["--datamatrix"] #auto parse as false/true
 # println(covars)
+df = CSV.File(path,header=1,delim='\t',missingstring="NA") |> DataFrame
+# convert to string to do match later based on idname.
+df[Symbol(idname)] = map(string,df[Symbol(idname)])
+# df = load(Stream(format"CSV", path),delim='\t',header_exists=true) |> DataFrame
+# load(Stream(format"CSV", io)
+# println(first(df, 3))
 
 # check pheno and covariates whether in ped file.
 check_names = vcat(pheno, idname, covars)
@@ -83,7 +86,10 @@ for line in eachline(stdin)
 
         data = join(d, df, on=Symbol(idname))
         # println(first(data, 3))
-        # println(data)
+        if outdatamatrix == true
+            println(stderr, data)
+        end
+
         if data == nothing
             println(stderr, "No common ids between RARESCORE from stdin and covariates file -f.")
             exit(-1)
