@@ -5,7 +5,7 @@ HTSJDK is used to fast parse vcf and compute the rare buden for each individual,
 Julia's GLM is about 300X faster than the R glm version, and the Julia's statistical ecosystem makes
 it very convenient to implement other type of statistical testing. Therefore, by the piping design strucure, 
 it's very easy to implement other type of test by Julia as plugin.
-Currrent verison supports epacts's **b.burden** and **b.collapse** tests, detail please check [here](https://genome.sph.umich.edu/wiki/EPACTS).
+Currrent verison supports epacts's **b.burden** and **b.collapse** tests, detail about the testing please check [here](https://genome.sph.umich.edu/wiki/EPACTS).
 
 
 
