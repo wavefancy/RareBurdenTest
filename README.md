@@ -20,4 +20,4 @@ for some cases of very small effective number, and non significant association, 
 them are different. Basically, Julia's GLM will have smaller estimation for beta and beta's standard error.
 But for the true assocaition and converged estimation, both of the estimation are identical.
 
-<img src="./Test/comp2.png" height="250" title="">
+<img src="./Test/comp2.png" height="300" title="">
