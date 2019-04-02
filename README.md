@@ -7,7 +7,7 @@ it very convenient to implement other type of statistical testing. Therefore, by
 it's very easy to implement other type of test by Julia as plugin.
 Currrent verison supports epacts's **b.burden** and **b.collapse** tests, detail about the testing please check [here](https://genome.sph.umich.edu/wiki/EPACTS).
 
-
+- **Addititonal future supported than epacts: weigh rare variant by specify weight in group file.**
 
 
 
