@@ -298,6 +298,9 @@ public class Main {
                     ID_SUM_SCORES[i++] += score;
 //                    System.err.println("score: " + score);
 //                      ID_SUM_SCORES[i++].addAndGet(score);
+                    if(loadVarID.equalsIgnoreCase("19:11350874:C:T")){
+                        System.err.println("score: " + score + "\t" + samplelist.get(i-1));
+                    }
                 }
 
                 NUM_GOOD[0] += 1;
