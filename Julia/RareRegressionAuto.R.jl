@@ -11,7 +11,7 @@ phenotype(binary/quantitative) ~ burden_score + covariates.
 *** Auto detect binary or quantitative regression based the the number of uniq number in phenotype.
 
 Usage:
-    RareRegressionAuto.R.jl -f file -p pheno -i id [-c covariates]
+    RareRegressionAuto.R.jl -f file -p pheno -i id [-c covariates] [--om file]
     RareRegressionAuto.R.jl -h | --help | --version
 
 Notes:
@@ -20,11 +20,11 @@ Notes:
 
 Options:
     -f file       Covariates file (including ID, Phenotype and covariates).
-                    First column as individual ID, 2-n as covariates.
                     TSV with header, missing coded as NA.
     -p pheno      Phenotype name.
     -i id         Column name for individual id.
     -c covariates Specifiy covariates, eg.: cov1,cov2|cov1.
+    --om file     Output data matrix for regression analysis, default not.
     -h --help     Show this screen.
     --version     Show version.
 """
@@ -150,6 +150,12 @@ for line in eachline(stdin)
 
                 #out = vcat(ss[1:datacol], [n_sample, f_rare, p, beta, beta_se, z])
                 out = vcat(ss[1:datacol], repr(n_sample), [@sprintf("%.4E", x) for x in [ f_rare, p, beta, beta_se, z]])
+                #output DataFrame for testing the association.
+                if args["--om"] != nothing
+                    #println(stderr, data)
+                    CSV.write(args["--om"],data,delim="\t")
+                end
+
             end
             println(join(out,"\t"))
 
