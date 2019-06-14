@@ -6,8 +6,9 @@ Firth biased-corrected method, but with about 100x faster than Firth method.
 Ref: A Fast and Accurate Algorithm to Test for Binary Phenotypes and Its Application to PheWAS
 
 Notes:
-  - Read gene level score from stdin and output results to stdout.
-  - The output P value has been signed, for indicating the effect direction.
+  * Read gene level score from stdin and output results to stdout.
+  * The output P value has been signed, for indicating the effect direction.
+  * For the SPA test, we use fastSPA=0.1, minmac = 1.
 
 Usage:
   RareSPATest.R -f file -p pheno -i id [-c covariates]
@@ -18,6 +19,7 @@ Options:
   -p pheno      Phenotype name.
   -i id         Column name for individual id.
   -c covariates Specifiy covariates, eg.: cov1,cov2|cov1.
+
   ' -> doc
 
 # load the docopt library and parse options.
@@ -90,9 +92,14 @@ while (T){
 
     genos = as.numeric(as.character(data[["SCORE"]]))
     # print(genos)
+    rare_count = length(which(genos>0))
 
-    out = c(ss[1:datacol], length(genos), length(which(genos>0))*1.0/length(genos))
-    if(is.null(covnames))
+    out = c(ss[1:datacol], length(genos), rare_count*1.0/length(genos))
+    # do not do
+    # if (rare_count <= 3){
+    #     out = c(out, "NA", "NA", "NA")
+    # }else{
+    if (is.null(covnames))
     {
         fit = ScoreTest_SPA_wMeta(genos,data[pheno],minmac=1,Cutoff=0.1,output="metaZ")
     }else{
@@ -110,8 +117,9 @@ while (T){
             beta.out=T, beta.Cutoff = 1e-3
         ) # using fastSPA=0.1
     }
-
     out = c(out, fit$p.value, fit$beta, fit$SEbeta)
+    # }
+
     cat(out,sep="\t")
     cat("\n")
 }
