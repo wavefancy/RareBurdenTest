@@ -44,6 +44,7 @@ OpenRead <- function(arg) {
    }
 }
 tfile = OpenRead(pedfile)
+# **** IMPORTANT: read.table will auto ignore comment lines.
 ped = read.table(tfile, header=T) # sep as white spaces: more spaces, tabs, newlines or carriage returns.
 close(tfile)
 # load data from stdin line by line,
