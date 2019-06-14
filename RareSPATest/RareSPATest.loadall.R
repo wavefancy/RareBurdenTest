@@ -9,6 +9,7 @@ Notes:
   * Read gene level score from stdin and output results to stdout.
   * The output P value has been signed, for indicating the effect direction.
   * For the SPA test, we use fastSPA=0.1, minmac = 1.
+  * This load all version is 3x faster than read line by line.
 
 Usage:
   RareSPATest.R -f file -p pheno -i id [-c covariates]
@@ -76,10 +77,10 @@ datanull = merge(ids, ped, by.x="ID", by.y=idname, sort=T)
 datacol = 7
 outtitle = T
 COVS = stri_split_fixed(COVS,'+')[[1]]
-# for (line in readLines(input)){
-while (T){
-    line = readLines(input, n = 1)
-    if ( length(line) == 0 ) {break}
+for (line in readLines(input)){
+# while (T){
+#     line = readLines(input, n = 1)
+#     if ( length(line) == 0 ) {break}
 
     ss = stri_split_regex( line, "\\s+" )[[1]]
     if(outtitle==T){ #output title line
