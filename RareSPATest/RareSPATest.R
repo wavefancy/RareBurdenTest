@@ -6,7 +6,8 @@ Firth biased-corrected method, but with about 100x faster than Firth method.
 Ref: A Fast and Accurate Algorithm to Test for Binary Phenotypes and Its Application to PheWAS
 
 Notes:
-  Read gene level score from stdin and output results to stdout.
+  - Read gene level score from stdin and output results to stdout.
+  - The output P value has been signed, for indicating the effect direction.
 
 Usage:
   RareSPATest.R -f file -p pheno -i id [-c covariates]
@@ -71,7 +72,11 @@ form = paste(pheno,COVS,sep="~")
 datacol = 7
 outtitle = T
 COVS = stri_split_fixed(COVS,'+')[[1]]
-for (line in readLines(input)){
+# for (line in readLines(input)){
+while (T){
+    line = readLines(input, n = 1)
+    if ( length(line) == 0 ) {break}
+
     ss = stri_split_regex( line, "\\s+" )[[1]]
     if(outtitle==T){ #output title line
         out = c(myhead[1:datacol], c("NS", "FRAC_WITH_RARE", "PVALUE", "BETA", "SEBETA"))
@@ -110,3 +115,4 @@ for (line in readLines(input)){
     cat(out,sep="\t")
     cat("\n")
 }
+close(input)
