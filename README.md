@@ -15,10 +15,10 @@ Current version supports epacts's **b.burden** and **b.collapse** tests, detail 
 
 
 **Variant scoring**
-Please see `VCFCountScore4GeneMask/VCFCountScore4GeneMask.py`
+- Please see `VCFCountScore4GeneMask/VCFCountScore4GeneMask.py`
 
 **Association of variant score with phenotype**
-Please see `Julia/RareRegressionAuto.R.SPA.jl`
+- Please see `Julia/RareRegressionAuto.R.SPA.jl`
 
 
 **Benchmarks**
