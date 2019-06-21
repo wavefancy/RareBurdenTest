@@ -9,7 +9,7 @@ Current version supports epacts's **b.burden** and **b.collapse** tests, detail 
 
 **Features**
 - Group rare variants by epacts like grouping file
-- Support weigh variant by specifying weight in grouping file, OR based on MAF. 1/(N*MAF*(1-MAF))^0.5, Madsen and Browning (2009).
+- Support weigh variant by specifying weight in grouping file, OR based on MAF. 1/(N * MAF * (1-MAF))^0.5, Madsen and Browning (2009).
 - In a single run, generate scores for multiple MAF with no extra cost for parsing VCF again and again.
 - Support glm test, firth logistic test and SPAtest(Optimized for small number and unbalanced case/control data).
 
