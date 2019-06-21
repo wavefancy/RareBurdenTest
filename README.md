@@ -14,9 +14,19 @@ Current version supports epacts's **b.burden** and **b.collapse** tests, detail 
 - Support glm test, firth logistic test and SPAtest(Optimized for small number and unbalanced case/control data).
 
 
-Benchmarked with epacts, it has the same results if we use R version of GLM.
+**Variant scoring**
+Please see `VCFCountScore4GeneMask/VCFCountScore4GeneMask.py`
+
+**Association of variant score with phenotype**
+Please see `Julia/RareRegressionAuto.R.SPA.jl`
+
+
+**Benchmarks**
+Benchmarked with epacts, it has the same results if we use R version of GLM (MIGEN chr22, LOFTEEHC, 25k cases and 25k controls, MAF=0.01).
 
 <img src="./python_epacts_compare/e_p.png" height="500" title="">
+
+The only dot difference is because of the inclusion of one variant, epacts included a variant with REF allele frequency < MAF. I don't think is good as we usually do annotation based on a REF -> ALT mutation, in my version of rare burden test, I only included ALF allele frequency <= MAF.
 
 As the convergency termination condition is different between Julia's GLM with R's GLM,
 for some cases of very small effective number, and non significant association, the estimation between
