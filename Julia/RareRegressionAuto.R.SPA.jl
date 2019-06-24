@@ -14,7 +14,7 @@ phenotype(binary/quantitative) ~ burden_score + covariates.
     Firth logistic regression for estimating effect size.
 
 Usage:
-    RareRegressionAuto.R.jl -f file -p pheno -i id [-c covariates] [--om file] [--spa] [--firthp float]
+    RareRegressionAuto.R.jl -f file -p pheno -i id [-c covariates] [--om file] [--spa] [--firthp float] [--dc int]
     RareRegressionAuto.R.jl -h | --help | --version
 
 Notes:
@@ -32,6 +32,8 @@ Options:
                         in SPAtest, default 0.001.
     -c covariates   Specifiy covariates, eg.: cov1,cov2|cov1.
     --om file       Output data matrix for regression analysis, default not.
+    --dc int        Specify the start column index for data, default 7.
+                        The first '--dc' columns will be copied to stdout.
     -h --help       Show this screen.
     --version       Show version.
 """
@@ -90,8 +92,8 @@ end
 # println(covars)
 #load data and to testing. first line as title for define ID, 2-n as meta and scores.
 mytitle=[]
-# println(length(mytitle))
-datacol=7
+# Column start index for data.
+datacol  = args["--dc"] == nothing ? 7 : parse(Int,args["--dc"])
 for line in eachline(stdin)
     # declear as global if we want to update a global values,
     # global values if view only for "for-loop".
@@ -147,12 +149,12 @@ for line in eachline(stdin)
                     # 2×4 Array{Float64,2}:
                     # 39.1321  21508.0   0.00181942  0.998548
                     # -19.5661  10754.0  -0.00181942  0.998548
-                
+
                     beta = r[2,1]
                     beta_se = r[2,2]
                     z = r[2,3]
                     p = r[2,4]
-                
+
                     # fitting the GLM by Julia GLM.
                     # l = glm(fm, data, Binomial(), LogitLink())
                     # r = coeftable(l)
@@ -163,7 +165,7 @@ for line in eachline(stdin)
                     # # typeof(p) is StatsBase.PValue, using .v to access it value.
                     # # check an example of : x = StatsBase.PValue.(rand(1)).
                     # p = coeftable(l).cols[4][2].v
-                
+
                     #out = vcat(ss[1:datacol], [n_sample, f_rare, p, beta, beta_se, z])
                     out = vcat(ss[1:datacol], repr(n_sample), [@sprintf("%.4E", x) for x in [ f_rare, p, beta, beta_se, z]])
                 else
@@ -177,7 +179,7 @@ for line in eachline(stdin)
                     # print(tcov)
                     # print(pheno)
                     # println(data[Symbol(pheno)])
-                
+
                     tpheno = data[Symbol(pheno)]
                     # println(tpheno)
                     @rput(tpheno, score, tcov)
