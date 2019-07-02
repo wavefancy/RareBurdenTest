@@ -7,7 +7,7 @@
     @Author: wavefancy@gmail.com
 
     Usage:
-        VCFCountScore4GeneMask.py -g file -v bgzfile [--weight text] [-s file] --max-maf floats [-n int]
+        VCFCountScore4GeneMask.py -g file -v bgzfile [--weight text] [-s file] --max-maf floats [-n int] [-k file]
         VCFCountScore4GeneMask.py -h | --help | -v | --version | -f | --format
 
     Notes:
@@ -24,6 +24,8 @@
         -s file          Sample file, only count the score for those individuals decleared in this file.
         -n int           Set the number of threads, Default 2, no impove as more threads.
         --max-maf floats MAF cut-off for variants, eg. 0.01|0.01,0.05
+        -k file          Always keep the variants listed in this file, surpass MAF filtering.
+                            Put id line by line, CHR:POS:REF:ALT format.
         -h --help        Show this screen.
         --version        Show version.
         -f --format      Show format example.
@@ -73,6 +75,12 @@ if __name__ == '__main__':
                 [samples.append(x) for x in ss]
     # convert list to set for fast checking
     # samples = set(samples)
+    KeepVIDs = set()
+    if args['-k']:
+        with open(args['-k'], 'r') as content_file:
+            content = content_file.read().strip().split()
+            KeepVIDs = set(content)
+    #print(KeepVIDs)
 
     mafs = [float(x) for x in args['--max-maf'].split(',')]
     MAX_MAF = max(mafs)
@@ -138,6 +146,10 @@ if __name__ == '__main__':
                         v_maf = min(aaf, 1-aaf)
                         if v_maf == 0: continue # I don't think this kind of sites make sense for testing.
                         weight = np.power(1/(aaf * (1-aaf)),0.5) if weight_way == 'maf' else record_weight[id]
+
+                        # Fake the maf as 0, to pass the maf filtering, in order to always keep this variant.
+                        if KeepVIDs and (id in KeepVIDs):
+                            v_maf = 0.0
 
                         # filter by maf and do computation:
                         if v_maf <= MAX_MAF:
