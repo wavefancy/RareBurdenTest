@@ -44,6 +44,7 @@ using RCall
 using DataFrames
 using CSV
 using Printf
+using Distributions
 
 args = docopt(doc, version=v"1.0")
 # print(args)
@@ -94,14 +95,18 @@ end
 mytitle=[]
 # Column start index for data.
 datacol  = args["--dc"] == nothing ? 7 : parse(Int,args["--dc"])
+# cache previous line result, if the same no need to compute again
+# this is very useful for computing different maf together. As the result may exact the same.
+cache_data = []
+cache_out  = []
+
 for line in eachline(stdin)
     # declear as global if we want to update a global values,
     # global values if view only for "for-loop".
     global mytitle
     global df
-    # global pheno
-    # global covars
-    # global SPAtest
+    global cache_data
+    global cache_out
 
     ss = split(chomp(line))
 
@@ -109,13 +114,25 @@ for line in eachline(stdin)
         # title = DataFrame(i=ss[datacol:end])
         # names!(title, Symbol(idname))
         mytitle = ss[datacol:end]
-        out = vcat(ss[1:datacol], ["NS", "FRAC_WITH_RARE", "PVALUE", "BETA", "SEBETA", "ZSTAT"])
-        println(join(out,"\t"))
+        if SPAtest == true
+            out_title = vcat(ss[1:datacol], ["NS", "FRAC_WITH_RARE", "PVALUE", "BETA", "SEBETA", "WALD_PVALUE"])
+        else
+            out_title = vcat(ss[1:datacol], ["NS", "FRAC_WITH_RARE", "PVALUE", "BETA", "SEBETA", "ZSTAT"])
+        end
+        println(join(out_title,"\t"))
 
     else
         d = DataFrame()
         d[Symbol(idname)] = mytitle
-        d[Symbol("RARESCORE")] = [parse(Float64,x) for x in ss[datacol:end]]
+        data_values = ss[datacol:end]
+        # the same data, just copy result
+        if data_values == cache_data
+            println(join(vcat(ss[1:datacol],cache_out),"\t"))
+            continue
+        end
+        cache_data = data_values
+
+        d[Symbol("RARESCORE")] = [parse(Float64,x) for x in data_values]
 
         data = join(d, df, on=Symbol(idname))
         # println(first(data, 3))
@@ -131,7 +148,8 @@ for line in eachline(stdin)
             # no information at grouping.
             out = []
             if f_rare == 0
-                out = vcat(ss[1:datacol], repr(n_sample), ["0", "NA", "NA", "NA", "NA"])
+                out = vcat(repr(n_sample), ["0", "NA", "NA", "NA", "NA"])
+                cache_out = out
             else
                 # print(SPAtest)
                 if SPAtest == false
@@ -167,7 +185,7 @@ for line in eachline(stdin)
                     # p = coeftable(l).cols[4][2].v
 
                     #out = vcat(ss[1:datacol], [n_sample, f_rare, p, beta, beta_se, z])
-                    out = vcat(ss[1:datacol], repr(n_sample), [@sprintf("%.4E", x) for x in [ f_rare, p, beta, beta_se, z]])
+                    out = vcat(repr(n_sample), [@sprintf("%.4E", x) for x in [ f_rare, p, beta, beta_se, z]])
                 else
 
                     if length(covars) == 0
@@ -195,7 +213,8 @@ for line in eachline(stdin)
                     beta =   ismissing(r[:beta])   ? "NA" : @sprintf("%.4E", r[:beta])
                     sebeta = ismissing(r[:SEbeta]) ? "NA" : @sprintf("%.4E", r[:SEbeta])
                     p = @sprintf("%.4E", r[:p_value])
-                    out = vcat(ss[1:datacol], repr(n_sample), [@sprintf("%.4E", f_rare), p, beta, sebeta, "NA"])
+                    wald_p = beta == "NA" ? "NA" : @sprintf("%.4E", ccdf(Normal(),abs(r[:beta]/r[:SEbeta]))*2) # Z to P, two sides.
+                    out = vcat(repr(n_sample), [@sprintf("%.4E", f_rare), p, beta, sebeta, wald_p])
                 end
                 #output DataFrame for testing the association.
                 if args["--om"] != nothing
@@ -204,7 +223,8 @@ for line in eachline(stdin)
                 end
 
             end
-            println(join(out,"\t"))
+            cache_out = out
+            println(join(vcat(ss[1:datacol],out),"\t"))
 
         end
     end
