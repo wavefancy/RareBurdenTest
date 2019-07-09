@@ -7,7 +7,7 @@
     @Author: wavefancy@gmail.com
 
     Usage:
-        VCFCountScore4GeneMask.py -g file -v bgzfile [--weight text] [-s file] --max-maf floats [-n int] [-k file]
+        VCFCountScore4GeneMask.py -g file -v bgzfile [--weight text] [-s file] --max-maf floats [-n int] [-k file] [--max-mac int]
         VCFCountScore4GeneMask.py -h | --help | -v | --version | -f | --format
 
     Notes:
@@ -23,8 +23,9 @@
                              MAF:  Set the weight as 1/(MAF*(1-MAF))^0.5. Madsen and Browning (2009).
         -s file          Sample file, only count the score for those individuals decleared in this file.
         -n int           Set the number of threads, Default 2, no impove as more threads.
-        --max-maf floats MAF cut-off for variants, eg. 0.01|0.01,0.05
-        -k file          Always keep the variants listed in this file, surpass MAF filtering.
+        --max-maf floats MAF cut-off for alt allele (alt allele frequency), eg. 0.01|0.01,0.05
+        --max-mac int    MAC cut-off for alt allele (alt allele count), filtering both on mac and maf, as maf is always on.
+        -k file          Always keep the variants listed in this file, surpass MAF and MAC filtering.
                             Put id line by line, CHR:POS:REF:ALT format.
         -h --help        Show this screen.
         --version        Show version.
@@ -84,6 +85,7 @@ if __name__ == '__main__':
 
     mafs = [float(x) for x in args['--max-maf'].split(',')]
     MAX_MAF = max(mafs)
+    MAX_MAC = int(args['--max-mac']) if args['--max-mac'] else -1 # -1 for no mac filtering.
 
     # gts012: bool
     #    if True, then gt_types will be 0=HOM_REF, 1=HET, 2=HOM_ALT, 3=UNKNOWN. If False, 3, 2 are flipped.
@@ -143,19 +145,26 @@ if __name__ == '__main__':
                         # print(id)
                         NUM_ALL_VARS += 1
                         aaf = variant.aaf # alt allele frequency across samples in this VCF.
-                        v_maf = min(aaf, 1-aaf)
+                        # v_maf = min(aaf, 1-aaf)
+                        v_maf = aaf
+                        alt_count = variant.num_het + variant.num_hom_alt*2
+                        v_mac = alt_count
+
                         if v_maf == 0: continue # I don't think this kind of sites make sense for testing.
                         weight = np.power(1/(aaf * (1-aaf)),0.5) if weight_way == 'maf' else record_weight[id]
 
-                        # Fake the maf as 0, to pass the maf filtering, in order to always keep this variant.
+                        # Fake the maf(mac) as 0, to pass the maf filtering, in order to always keep this variant.
                         if KeepVIDs and (id in KeepVIDs):
                             v_maf = 0.0
+                            v_mac = 0
+                        if MAX_MAC >= 0 and v_mac > MAX_MAC: #mac filtering.
+                            continue
 
                         # filter by maf and do computation:
                         if v_maf <= MAX_MAF:
                             # gt_types is array of 0,1,2,3==HOM_REF, HET, UNKNOWN, HOM_ALT
                             genos = variant.gt_types
-                            alt_count = variant.num_het + variant.num_hom_alt*2
+                            # alt_count = variant.num_het + variant.num_hom_alt*2
                             # impute missing as HOM_REF
                             genos[genos == 3] = 0
                             # convert geno count to weight
