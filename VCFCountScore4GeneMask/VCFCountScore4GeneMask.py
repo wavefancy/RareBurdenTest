@@ -68,12 +68,13 @@ if __name__ == '__main__':
         ne.set_num_threads(N_threads)
 
     samples = []
-    with open(args['-s'], 'r') as sfile:
-        for line in sfile:
-            line = line.strip()
-            if line:
-                ss = line.split()
-                [samples.append(x) for x in ss]
+    if args['-s']:
+        with open(args['-s'], 'r') as sfile:
+            for line in sfile:
+                line = line.strip()
+                if line:
+                    ss = line.split()
+                    [samples.append(x) for x in ss]
     # convert list to set for fast checking
     # samples = set(samples)
     KeepVIDs = set()
