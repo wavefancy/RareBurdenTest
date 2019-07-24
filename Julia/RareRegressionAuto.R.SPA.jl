@@ -202,7 +202,9 @@ for line in eachline(stdin)
                     # println(tpheno)
                     @rput(tpheno, score, tcov)
                     # # CALL fastSPA-0.1
-                    r = rcopy(R"ScoreTest_SPA_wMeta(score,tpheno,tcov,minmac=1,Cutoff=0.1,output='metaZ',beta.out=T, beta.Cutoff = $firthP)")
+                    # # CALL fastSPA-2 for get the results return quickly, detail please check the AJHG paper: A Fast and Accurate Algorithm to Test for Binary Phenotypes and Its Application to PheWAS
+                    r = rcopy(R"ScoreTest_SPA_wMeta(score,tpheno,tcov,minmac=1,Cutoff=2,output='metaZ',beta.out=T, beta.Cutoff = $firthP)")
+                   #r = rcopy(R"ScoreTest_SPA_wMeta(score,tpheno,tcov,minmac=1,Cutoff=0.1,output='metaZ',beta.out=T, beta.Cutoff = $firthP)")
                     # output is a dict
                     # :p_value     => 0.032222 , p value from SPAtest
                     # :p_value_NA  => 0.035015 , p value from traditional score test.
