@@ -55,9 +55,6 @@ idname  = args["-i"]
 covars  = args["-c"] == nothing ? []  : split(args["-c"],",")
 SPAtest = args["--spa"]
 firthP  = args["--firthp"] == nothing ? 0.001 : parse(Float64,args["--firthp"])
-if SPAtest
-    R"library(SPAtest)"
-end
 # println(covars)
 
 df = CSV.File(path,header=1,delim='\t',missingstring="NA") |> DataFrame
@@ -87,7 +84,12 @@ if PHENO_LENGTH == 2
     println(stderr,"Using logistic regression as only detected 2 possible values for phenotype.")
 else
     FAMILY = "gaussian"
+    # Continous traits, force use non-SPAtest. using R glm instead.
+    SPAtest = false
     println(stderr,"Using gaussian(quantitative) regression as more than 2 possible values for phenotype.")
+end
+if SPAtest
+    R"library(SPAtest)"
 end
 
 # println(covars)
