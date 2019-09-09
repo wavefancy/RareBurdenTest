@@ -189,22 +189,21 @@ for line in eachline(stdin)
                 else
 
                     if length(covars) == 0
-                        tcov = ones(length(score))
+                        # tcov = ones(length(score))
+                        tpheno = data[Symbol(pheno)]
+                        @rput(tpheno, score)
+                        # No covariate. vector of 1 as covariate.
+                        R"tcov = rep(1, length(score))"
+                        r = rcopy(R"ScoreTest_SPA_wMeta(score,tpheno,tcov,minmac=1,Cutoff=2,output='metaZ',beta.out=T, beta.Cutoff = $firthP)")
                     else
                         tcov = data[map(Symbol,covars)]
+                        tpheno = data[Symbol(pheno)]
+                        @rput(tpheno, score, tcov)
+                        # # CALL fastSPA-0.1
+                        # # CALL fastSPA-2 for get the results return quickly, detail please check the AJHG paper: A Fast and Accurate Algorithm to Test for Binary Phenotypes and Its Application to PheWAS
+                        r = rcopy(R"ScoreTest_SPA_wMeta(score,tpheno,tcov,minmac=1,Cutoff=2,output='metaZ',beta.out=T, beta.Cutoff = $firthP)")
+                       #r = rcopy(R"ScoreTest_SPA_wMeta(score,tpheno,tcov,minmac=1,Cutoff=0.1,output='metaZ',beta.out=T, beta.Cutoff = $firthP)")
                     end
-                    tcov = data[map(Symbol,covars)]
-                    # print(tcov)
-                    # print(pheno)
-                    # println(data[Symbol(pheno)])
-
-                    tpheno = data[Symbol(pheno)]
-                    # println(tpheno)
-                    @rput(tpheno, score, tcov)
-                    # # CALL fastSPA-0.1
-                    # # CALL fastSPA-2 for get the results return quickly, detail please check the AJHG paper: A Fast and Accurate Algorithm to Test for Binary Phenotypes and Its Application to PheWAS
-                    r = rcopy(R"ScoreTest_SPA_wMeta(score,tpheno,tcov,minmac=1,Cutoff=2,output='metaZ',beta.out=T, beta.Cutoff = $firthP)")
-                   #r = rcopy(R"ScoreTest_SPA_wMeta(score,tpheno,tcov,minmac=1,Cutoff=0.1,output='metaZ',beta.out=T, beta.Cutoff = $firthP)")
                     # output is a dict
                     # :p_value     => 0.032222 , p value from SPAtest
                     # :p_value_NA  => 0.035015 , p value from traditional score test.
