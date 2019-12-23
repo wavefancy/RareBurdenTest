@@ -11,7 +11,7 @@
 
     Usage:
         VCFCountScore4GeneMask.py -g file -v bgzfile [--weight text] [-s file] [--max-maf float] [-n int] [-k file] [--max-mac int] [--maf-bin floats] [--mac-bin ints]
-        VCFCountScore4GeneMask.py -h | --help | -v | --version | -f | --format
+        VCFCountScore4GeneMask.py -h | --help | --version | -f | --format
 
     Notes:
         1. Output to stdout, each line for each gene mask.
@@ -102,6 +102,10 @@ if __name__ == '__main__':
     MAX_MAC = int(args['--max-mac'])   if args['--max-mac'] else 9000000000 # I don't think we may have sample size more than this.
     MAX_MAF = min(MAX_MAF, max(mafs))  if mafs else MAX_MAF
     MAX_MAC = min(MAX_MAC, max(macs))  if macs else MAX_MAC
+
+    if len(mafs) == 0 and len(macs) == 0:
+        sys.stderr.write("At least one should be open: '--maf-bin' and/or '--mac-bin'\n")
+        sys.exit(-1)
     
     # gts012: bool
     #    if True, then gt_types will be 0=HOM_REF, 1=HET, 2=HOM_ALT, 3=UNKNOWN. If False, 3, 2 are flipped.
