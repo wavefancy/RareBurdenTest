@@ -2,12 +2,15 @@
 
 """
 
-    Aggregate/weight the number of rare variant in each individual in each gene.
+    Aggregate/weight the number of rare variant for each individual in each gene.
+        - A single pass can classify variant into multiple maf or mac bins.
+        - Facilitate downstream burden based test for checking multiple conditions.
+        *** Do not support multi-allelic sites, please norm the VCF.
 
     @Author: wavefancy@gmail.com
 
     Usage:
-        VCFCountScore4GeneMask.py -g file -v bgzfile [--weight text] [-s file] --max-maf floats [-n int] [-k file] [--max-mac int]
+        VCFCountScore4GeneMask.py -g file -v bgzfile [--weight text] [-s file] [--max-maf float] [-n int] [-k file] [--max-mac int] [--maf-bin floats] [--mac-bin ints]
         VCFCountScore4GeneMask.py -h | --help | -v | --version | -f | --format
 
     Notes:
@@ -23,8 +26,14 @@
                              MAF:  Set the weight as 1/(MAF*(1-MAF))^0.5. Madsen and Browning (2009).
         -s file          Sample file, only count the score for those individuals decleared in this file.
         -n int           Set the number of threads, Default 2, no impove as more threads.
-        --max-maf floats MAF cut-off for alt allele (alt allele frequency), eg. 0.01|0.01,0.05
-        --max-mac int    MAC cut-off for alt allele (alt allele count), filtering both on mac and maf, as maf is always on.
+        --max-maf float  MAF filtering for alt allele (alt allele frequency), eg. 0.01.
+        --max-mac int    MAC filtering for alt allele (alt allele count), eg. 5.
+        --maf-bin floats MAF cut-off for alt allele (alt allele frequency), eg. 0.01|0.01,0.05.
+                            For a single pass, the variants will be checked if meet any 'maf-bin' cut-off,
+                            IF so, will contribute to the score for those bins it met the condition.
+        --mac-bin ints   MAC cut-off for alt allele (alt allele count), eg. 5|1,3.
+                            For a single pass, the variants will be checked if meet any 'mac-bin' cut-off,
+                            IF so, will contribute to the score for those bins it met the condition.
         -k file          Always keep the variants listed in this file, surpass MAF and MAC filtering.
                             Put id line by line, CHR:POS:REF:ALT format.
         -h --help        Show this screen.
@@ -77,6 +86,8 @@ if __name__ == '__main__':
                     [samples.append(x) for x in ss]
     # convert list to set for fast checking
     # samples = set(samples)
+
+    # The variant list we always want to keep, no matter what's the MAF and MAC filter is.
     KeepVIDs = set()
     if args['-k']:
         with open(args['-k'], 'r') as content_file:
@@ -84,10 +95,14 @@ if __name__ == '__main__':
             KeepVIDs = set(content)
     #print(KeepVIDs)
 
-    mafs = [float(x) for x in args['--max-maf'].split(',')]
-    MAX_MAF = max(mafs)
-    MAX_MAC = int(args['--max-mac']) if args['--max-mac'] else -1 # -1 for no mac filtering.
-
+    # Will check if a varinat met any maf or mac bin.
+    mafs = [float(x) for x in args['--maf-bin'].split(',')] if args['--maf-bin'] else []
+    macs = [int(x)   for x in args['--mac-bin'].split(',')] if args['--mac-bin'] else []
+    MAX_MAF = float(args['--max-maf']) if args['--max-maf'] else 1
+    MAX_MAC = int(args['--max-mac'])   if args['--max-mac'] else 9000000000 # I don't think we may have sample size more than this.
+    MAX_MAF = min(MAX_MAF, max(mafs))  if mafs else MAX_MAF
+    MAX_MAC = min(MAX_MAC, max(macs))  if macs else MAX_MAC
+    
     # gts012: bool
     #    if True, then gt_types will be 0=HOM_REF, 1=HET, 2=HOM_ALT, 3=UNKNOWN. If False, 3, 2 are flipped.
     # strict_gt: True: half missing set as UNKNOWN. Otherwise half missing set at HET.
@@ -99,12 +114,12 @@ if __name__ == '__main__':
         vcf = VCF(vcf_file, gts012=True, strict_gt=True, lazy=True, threads = N_threads)
 
     # print(vcf.samples)
-    out = "#CHROM  BEGIN   END     MARKER_ID       NUM_ALL_VARS    NUM_PASS_VARS   NUM_SING_VARS MAF_CUT".split()
+    out = "#CHROM  BEGIN   END     MARKER_ID       NUM_ALL_VARS    NUM_PASS_VARS   NUM_SING_VARS MAF/MAC_CUT".split()
     sys.stdout.write('%s\n'%('\t'.join(out + vcf.samples)))
     # go through the group file and count the scores.
     with open(group_file, 'r') as gfile:
 
-        for line in gfile:
+        for line in gfile: # Process by group file, line by line, each line is a gene.
             line = line.strip()
             if line: # for each gene
                 ss = line.split()
@@ -119,15 +134,25 @@ if __name__ == '__main__':
                     record_weight[key] = w
                     positions.append(int(t[1]))
 
-                # results for different MAFs.
-                MAF_RESULTS = OrderedDict()
-                MAF_RESULTS_PASS = OrderedDict()
-                MAF_RESULTS_SING = OrderedDict()
-                for x in mafs:
-                    MAF_RESULTS[str(x)] = np.zeros(len(vcf.samples))
-                    MAF_RESULTS_PASS[str(x)] = 0
-                    MAF_RESULTS_SING[str(x)] = 0
+                # results for different MAFs and MACs.
+                MAF_RESULTS = OrderedDict()        # Individual scores.
+                MAF_RESULTS_PASS = OrderedDict()   # Number of passed variants.
+                MAF_RESULTS_SING = OrderedDict()   # Number of singleton.
+                MAC_RESULTS = OrderedDict()
+                MAC_RESULTS_PASS = OrderedDict()
+                MAC_RESULTS_SING = OrderedDict()
+                if mafs:
+                    for x in mafs:
+                        MAF_RESULTS[str(x)] = np.zeros(len(vcf.samples))
+                        MAF_RESULTS_PASS[str(x)] = 0
+                        MAF_RESULTS_SING[str(x)] = 0
+                if macs:
+                    for x in macs:
+                        MAC_RESULTS[str(x)] = np.zeros(len(vcf.samples))
+                        MAC_RESULTS_PASS[str(x)] = 0
+                        MAC_RESULTS_SING[str(x)] = 0
 
+                #META INFO for a chunk of VCF.
                 chr  = ss[1].split(':')[0]
                 minp, maxp = (min(positions), max(positions))
                 out = [chr, str(minp), str(maxp), ss[0]]
@@ -158,38 +183,53 @@ if __name__ == '__main__':
                         if KeepVIDs and (id in KeepVIDs):
                             v_maf = 0.0
                             v_mac = 0
-                        if MAX_MAC >= 0 and v_mac > MAX_MAC: #mac filtering.
+                        if v_maf > MAX_MAF or v_mac > MAX_MAC: #max-maf or max-mac filtering.
                             continue
 
-                        # filter by maf and do computation:
-                        if v_maf <= MAX_MAF:
-                            # gt_types is array of 0,1,2,3==HOM_REF, HET, UNKNOWN, HOM_ALT
-                            genos = variant.gt_types
-                            # alt_count = variant.num_het + variant.num_hom_alt*2
-                            # impute missing as HOM_REF
-                            genos[genos == 3] = 0
-                            # convert geno count to weight
-                            genos = ne.evaluate('genos * weight')
-                            #genos[genos >0 ] *= weight
+                        # gt_types is array of 0,1,2,3==HOM_REF, HET, UNKNOWN, HOM_ALT
+                        genos = variant.gt_types
+                        # alt_count = variant.num_het + variant.num_hom_alt*2
+                        # impute missing as HOM_REF
+                        genos[genos == 3] = 0
+                        # convert geno count to weight
+                        genos = ne.evaluate('genos * weight')
+                        #genos[genos >0 ] *= weight
 
+                        # filter by maf and do computation:
+                        if mafs:
                             # aggregate results
                             for maf in mafs:
                                 if v_maf <= maf:
                                     aid = str(maf)
                                     MAF_RESULTS_PASS[aid] = MAF_RESULTS_PASS[aid] + 1
                                     t = MAF_RESULTS[aid]
-                                    MAF_RESULTS[aid]      = ne.evaluate('t + genos')
+                                    MAF_RESULTS[aid] = ne.evaluate('t + genos')
 
                                     if alt_count == 1:
                                         MAF_RESULTS_SING[aid] = MAF_RESULTS_SING[aid] + 1
 
+                        # filter by mac and do computation:
+                        if macs:
+                            # aggregate results
+                            for mac in macs:
+                                if v_mac <= mac:
+                                    aid = str(mac)
+                                    MAC_RESULTS_PASS[aid] = MAC_RESULTS_PASS[aid] + 1
+                                    t = MAC_RESULTS[aid]
+                                    MAC_RESULTS[aid] = ne.evaluate('t + genos')
+
+                                    if alt_count == 1:
+                                        MAC_RESULTS_SING[aid] = MAC_RESULTS_SING[aid] + 1
 
                 # print(MAF_RESULTS)
                 #output results
                 for maf in mafs:
                     aid = str(maf)
                     myout = out + [str(NUM_ALL_VARS), str(MAF_RESULTS_PASS[aid]), str(MAF_RESULTS_SING[aid]), aid] + ['%g'%(x) for x in MAF_RESULTS[aid]]
-
+                    sys.stdout.write('%s\n'%('\t'.join(myout)))
+                for mac in macs:
+                    aid = str(mac)
+                    myout = out + [str(NUM_ALL_VARS), str(MAC_RESULTS_PASS[aid]), str(MAC_RESULTS_SING[aid]), aid] + ['%g'%(x) for x in MAC_RESULTS[aid]]
                     sys.stdout.write('%s\n'%('\t'.join(myout)))
 
 sys.stdout.flush()

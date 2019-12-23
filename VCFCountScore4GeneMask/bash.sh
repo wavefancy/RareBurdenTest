@@ -5,6 +5,7 @@ wecho "
         -v ./test.indels.missing.vcf.gz
         --weight maf
         --max-maf 0.01,1
+        --max-mac 1
         -s ./samples.txt
     | bgzip > out.test.txt.gz
 "
