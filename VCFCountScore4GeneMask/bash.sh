@@ -1,4 +1,6 @@
-# Test the capture of indels.
+# Test the capture of indels. Tested filter including VQSRTrancheSNP99.60to99.80.
+# Will output [W::vcf_parse] FILTER 'VQSRTrancheSNP99.60to99.80' is not defined in the header
+# But the output is right, correctly parsed the vcf.
 wecho "
     python3 VCFCountScore4GeneMask.py
         -g ./test.group.txt
