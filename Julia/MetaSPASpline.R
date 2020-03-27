@@ -35,7 +35,7 @@ opts <- docopt(doc)
 
 ##### Start the main function ########
 #data = read.table("./test.metaspline.txt", header = T,stringsAsFactors=F)
-data = read.table(file("stdin"),header = T,stringsAsFactors=F)
+data = read.table(file("stdin"),header = T,stringsAsFactors=F,check.names=F)
 
 fmt  = function(x){formatC(x, digits = 2, format = "f")}
 fmtP = function(x){formatC(x, digits = 2, format = "e")}
