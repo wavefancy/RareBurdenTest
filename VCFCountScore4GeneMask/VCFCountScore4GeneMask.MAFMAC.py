@@ -10,7 +10,7 @@
     @Author: wavefancy@gmail.com
 
     Usage:
-        VCFCountScore4GeneMask.py -g file -v bgzfile [--weight text] [-s file] [--max-maf float] [-n int] [-k file] [--max-mac int] [--maf-bin floats] [--mac-bin ints]
+        VCFCountScore4GeneMask.py -g file -v bgzfile [--weight text] [-s file] [--max-maf float] [-n int] [-k file] [--max-mac int] [--maf-bin floats] [--mac-bin ints] [--ov]
         VCFCountScore4GeneMask.py -h | --help | --version | -f | --format
 
     Notes:
@@ -25,7 +25,7 @@
                                    Set as 1 if group file don't have weight.
                              MAF:  Set the weight as 1/(MAF*(1-MAF))^0.5. Madsen and Browning (2009).
         -s file          Sample file, only count the score for those individuals decleared in this file.
-        -n int           Set the number of threads, Default 2, no impove as more threads.
+        -n int           Set the number of threads, Default 2, usually no impove as more threads.
         --max-maf float  MAF filtering for alt allele (alt allele frequency), eg. 0.01.
         --max-mac int    MAC filtering for alt allele (alt allele count), eg. 5.
         --maf-bin floats MAF cut-off for alt allele (alt allele frequency), eg. 0.01|0.01,0.05.
@@ -36,6 +36,7 @@
                             IF so, will contribute to the score for those bins it met the condition.
         -k file          Always keep the variants listed in this file, surpass MAF and MAC filtering.
                             Put id line by line, CHR:POS:REF:ALT format.
+        --ov             Output qualified variant list used in the scoring to stderr.
         -h --help        Show this screen.
         --version        Show version.
         -f --format      Show format example.
@@ -52,7 +53,7 @@ signal(SIGPIPE, SIG_DFL)
 def ShowFormat():
     '''Input File format example:'''
     print('''
-    ''');
+    ''')
 
 if __name__ == '__main__':
     args = docopt(__doc__, version='1.1')
@@ -102,6 +103,7 @@ if __name__ == '__main__':
     MAX_MAC = int(args['--max-mac'])   if args['--max-mac'] else 9000000000 # I don't think we may have sample size more than this.
     MAX_MAF = min(MAX_MAF, max(mafs))  if mafs else MAX_MAF
     MAX_MAC = min(MAX_MAC, max(macs))  if macs else MAX_MAC
+    OUT_QUALIFIED_VARIANTS  = True if args['--ov'] else False
 
     if len(mafs) == 0 and len(macs) == 0:
         sys.stderr.write("At least one should be open: '--maf-bin' and/or '--mac-bin'\n")
@@ -142,19 +144,24 @@ if __name__ == '__main__':
                 MAF_RESULTS = OrderedDict()        # Individual scores.
                 MAF_RESULTS_PASS = OrderedDict()   # Number of passed variants.
                 MAF_RESULTS_SING = OrderedDict()   # Number of singleton.
+                MAF_QUALIFIED_SNPS = OrderedDict() # The qualified snp list in the scoring.
                 MAC_RESULTS = OrderedDict()
                 MAC_RESULTS_PASS = OrderedDict()
                 MAC_RESULTS_SING = OrderedDict()
+                MAC_QUALIFIED_SNPS = OrderedDict()
+
                 if mafs:
                     for x in mafs:
                         MAF_RESULTS[str(x)] = np.zeros(len(vcf.samples))
                         MAF_RESULTS_PASS[str(x)] = 0
                         MAF_RESULTS_SING[str(x)] = 0
+                        MAF_QUALIFIED_SNPS[str(x)] = []
                 if macs:
                     for x in macs:
                         MAC_RESULTS[str(x)] = np.zeros(len(vcf.samples))
                         MAC_RESULTS_PASS[str(x)] = 0
                         MAC_RESULTS_SING[str(x)] = 0
+                        MAC_QUALIFIED_SNPS[str(x)] = []
 
                 #META INFO for a chunk of VCF.
                 chr  = ss[1].split(':')[0]
@@ -208,6 +215,8 @@ if __name__ == '__main__':
                                     MAF_RESULTS_PASS[aid] = MAF_RESULTS_PASS[aid] + 1
                                     t = MAF_RESULTS[aid]
                                     MAF_RESULTS[aid] = ne.evaluate('t + genos')
+                                    if OUT_QUALIFIED_VARIANTS:
+                                        MAF_QUALIFIED_SNPS[aid].append(id)
 
                                     if alt_count == 1:
                                         MAF_RESULTS_SING[aid] = MAF_RESULTS_SING[aid] + 1
@@ -221,6 +230,8 @@ if __name__ == '__main__':
                                     MAC_RESULTS_PASS[aid] = MAC_RESULTS_PASS[aid] + 1
                                     t = MAC_RESULTS[aid]
                                     MAC_RESULTS[aid] = ne.evaluate('t + genos')
+                                    if OUT_QUALIFIED_VARIANTS:
+                                        MAC_QUALIFIED_SNPS[aid].append(id)
 
                                     if alt_count == 1:
                                         MAC_RESULTS_SING[aid] = MAC_RESULTS_SING[aid] + 1
@@ -231,10 +242,16 @@ if __name__ == '__main__':
                     aid = str(maf)
                     myout = out + [str(NUM_ALL_VARS), str(MAF_RESULTS_PASS[aid]), str(MAF_RESULTS_SING[aid]), aid] + ['%g'%(x) for x in MAF_RESULTS[aid]]
                     sys.stdout.write('%s\n'%('\t'.join(myout)))
+                    if OUT_QUALIFIED_VARIANTS:
+                        eout = out + ','.join(MAF_QUALIFIED_SNPS[aid])
+                        sys.stderr.write('%s\n'%('\t'.join(eout)))
                 for mac in macs:
                     aid = str(mac)
                     myout = out + [str(NUM_ALL_VARS), str(MAC_RESULTS_PASS[aid]), str(MAC_RESULTS_SING[aid]), aid] + ['%g'%(x) for x in MAC_RESULTS[aid]]
                     sys.stdout.write('%s\n'%('\t'.join(myout)))
+                    if OUT_QUALIFIED_VARIANTS:
+                        eout = out + ','.join(MAC_QUALIFIED_SNPS[aid])
+                        sys.stderr.write('%s\n'%('\t'.join(eout)))
 
 sys.stdout.flush()
 sys.stdout.close()
