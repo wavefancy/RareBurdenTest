@@ -216,6 +216,7 @@ if __name__ == '__main__':
                                     MAF_RESULTS_PASS[aid] = MAF_RESULTS_PASS[aid] + 1
                                     t = MAF_RESULTS[aid]
                                     MAF_RESULTS[aid] = ne.evaluate('t + genos')
+                                    # sys.stderr.write('IN::%s\t%s\t%s\t%s\n'%(id,str(v_maf),str(v_mac),aid))
                                     if OUT_QUALIFIED_VARIANTS:
                                         MAF_QUALIFIED_SNPS[aid].append(id)
 

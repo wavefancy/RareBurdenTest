@@ -172,6 +172,8 @@ if __name__ == '__main__':
                             genos = ne.evaluate('genos * weight')
                             #genos[genos >0 ] *= weight
 
+                            #sys.stderr.write('%s\n'%(id))
+                            # sys.stderr.write('%s\t%s\t%s\n'%(id,str(v_maf),str(v_mac)))
                             # aggregate results
                             for maf in mafs:
                                 if v_maf <= maf:
