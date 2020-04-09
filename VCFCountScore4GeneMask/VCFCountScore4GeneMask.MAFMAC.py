@@ -10,7 +10,7 @@
     @Author: wavefancy@gmail.com
 
     Usage:
-        VCFCountScore4GeneMask.py -g file -v bgzfile [--weight text] [-s file] [--max-maf float] [-n int] [-k file] [--max-mac int] [--maf-bin floats] [--mac-bin ints] [--ov]
+        VCFCountScore4GeneMask.py -g file -v bgzfile [--weight text] [-s file] [-n int] [-k file] [--maf-bin floats] [--mac-bin ints] [--ov]
         VCFCountScore4GeneMask.py -h | --help | --version | -f | --format
 
     Notes:
@@ -26,8 +26,6 @@
                              MAF:  Set the weight as 1/(MAF*(1-MAF))^0.5. Madsen and Browning (2009).
         -s file          Sample file, only count the score for those individuals decleared in this file.
         -n int           Set the number of threads, Default 2, usually no impove as more threads.
-        --max-maf float  MAF filtering for alt allele (alt allele frequency), eg. 0.01.
-        --max-mac int    MAC filtering for alt allele (alt allele count), eg. 5.
         --maf-bin floats MAF cut-off for alt allele (alt allele frequency), eg. 0.01|0.01,0.05.
                             For a single pass, the variants will be checked if meet any 'maf-bin' cut-off,
                             IF so, will contribute to the score for those bins it met the condition.
@@ -99,10 +97,11 @@ if __name__ == '__main__':
     # Will check if a varinat met any maf or mac bin.
     mafs = [float(x) for x in args['--maf-bin'].split(',')] if args['--maf-bin'] else []
     macs = [int(x)   for x in args['--mac-bin'].split(',')] if args['--mac-bin'] else []
-    MAX_MAF = float(args['--max-maf']) if args['--max-maf'] else 1
-    MAX_MAC = int(args['--max-mac'])   if args['--max-mac'] else 9000000000 # I don't think we may have sample size more than this.
-    MAX_MAF = min(MAX_MAF, max(mafs))  if mafs else MAX_MAF
-    MAX_MAC = min(MAX_MAC, max(macs))  if macs else MAX_MAC
+    # as we will set maf-bin or mac-bin, so do not need max-mac or max-maf any more.
+    # MAX_MAF = float(args['--max-maf']) if args['--max-maf'] else 1
+    # MAX_MAC = int(args['--max-mac'])   if args['--max-mac'] else 9000000000 # I don't think we may have sample size more than this.
+    MAX_MAF = max(mafs)  if mafs else 1
+    MAX_MAC = max(macs)  if macs else 9000000000
     OUT_QUALIFIED_VARIANTS  = True if args['--ov'] else False
 
     if len(mafs) == 0 and len(macs) == 0:
@@ -177,7 +176,8 @@ if __name__ == '__main__':
                     # print(variant.ALT)
                     ALT_ALLELE = variant.ALT[0] if variant.ALT else '.'
                     id = '%s:%s:%s:%s'%(variant.CHROM, variant.start+1, variant.REF, ALT_ALLELE)
-                    # print(id)
+                    # sys.stderr.write('%s\t%s\n'%(id,str(record_weight)))
+                    # sys.stderr.write('%s\n'%(id))
                     if id in record_weight:
                         # print(id)
                         NUM_ALL_VARS += 1
@@ -187,6 +187,7 @@ if __name__ == '__main__':
                         alt_count = variant.num_het + variant.num_hom_alt*2
                         v_mac = alt_count
 
+                        # sys.stderr.write('CHECKED:::%s\t%s\n'%(id,str(record_weight)))
                         if v_maf == 0: continue # I don't think this kind of sites make sense for testing.
                         weight = np.power(1/(aaf * (1-aaf)),0.5) if weight_way == 'maf' else record_weight[id]
 
@@ -194,20 +195,20 @@ if __name__ == '__main__':
                         if KeepVIDs and (id in KeepVIDs):
                             v_maf = 0.0
                             v_mac = 0
-                        if v_maf > MAX_MAF or v_mac > MAX_MAC: #max-maf or max-mac filtering.
+                        if v_maf > MAX_MAF and v_mac > MAX_MAC: #max-maf or max-mac filtering.
                             continue
 
                         # gt_types is array of 0,1,2,3==HOM_REF, HET, UNKNOWN, HOM_ALT
                         genos = variant.gt_types
-                        # alt_count = variant.num_het + variant.num_hom_alt*2
                         # impute missing as HOM_REF
                         genos[genos == 3] = 0
                         # convert geno count to weight
                         genos = ne.evaluate('genos * weight')
                         #genos[genos >0 ] *= weight
 
+                        # sys.stderr.write('%s\t%s\t%s\n'%(id,str(v_maf),str(v_mac)))
                         # filter by maf and do computation:
-                        if mafs:
+                        if v_maf <= MAX_MAF and mafs:
                             # aggregate results
                             for maf in mafs:
                                 if v_maf <= maf:
@@ -222,7 +223,7 @@ if __name__ == '__main__':
                                         MAF_RESULTS_SING[aid] = MAF_RESULTS_SING[aid] + 1
 
                         # filter by mac and do computation:
-                        if macs:
+                        if v_mac <= MAX_MAC and macs:
                             # aggregate results
                             for mac in macs:
                                 if v_mac <= mac:
@@ -243,14 +244,14 @@ if __name__ == '__main__':
                     myout = out + [str(NUM_ALL_VARS), str(MAF_RESULTS_PASS[aid]), str(MAF_RESULTS_SING[aid]), aid] + ['%g'%(x) for x in MAF_RESULTS[aid]]
                     sys.stdout.write('%s\n'%('\t'.join(myout)))
                     if OUT_QUALIFIED_VARIANTS:
-                        eout = out + ','.join(MAF_QUALIFIED_SNPS[aid])
+                        eout = out + [aid, ','.join(MAF_QUALIFIED_SNPS[aid]) if MAF_QUALIFIED_SNPS[aid] else 'NA']
                         sys.stderr.write('%s\n'%('\t'.join(eout)))
                 for mac in macs:
                     aid = str(mac)
                     myout = out + [str(NUM_ALL_VARS), str(MAC_RESULTS_PASS[aid]), str(MAC_RESULTS_SING[aid]), aid] + ['%g'%(x) for x in MAC_RESULTS[aid]]
                     sys.stdout.write('%s\n'%('\t'.join(myout)))
                     if OUT_QUALIFIED_VARIANTS:
-                        eout = out + ','.join(MAC_QUALIFIED_SNPS[aid])
+                        eout = out + [aid, ','.join(MAC_QUALIFIED_SNPS[aid]) if MAC_QUALIFIED_SNPS[aid] else 'NA']
                         sys.stderr.write('%s\n'%('\t'.join(eout)))
 
 sys.stdout.flush()
