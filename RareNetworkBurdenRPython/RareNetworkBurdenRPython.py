@@ -42,7 +42,7 @@ signal(SIGPIPE,SIG_DFL) #prevent IOError: [Errno 32] Broken pipe. If pipe closed
 def ShowFormat():
     '''Input File format example:'''
     print('''
-    ''');
+    ''')
 
 if __name__ == '__main__':
     args = docopt(__doc__, version='1.0')
@@ -67,7 +67,11 @@ if __name__ == '__main__':
     # check phenotype to determine use normal regression or logistic regress.
     LOGIS_REGRESS = True if len(set(df[PHENO_N])) == 2 else False
     link = 'binomial' if LOGIS_REGRESS else 'gaussian'
-
+    if link == 'binomial':
+        sys.stderr.write('The phenotype only has 2 distinct values, using logistic regression\n')
+    else:
+        sys.stderr.write('The phenotype has more than 2 distinct values, using linear regression\n')
+    
     # load gene score file, and map file from gene_name -> line values.
     title = ''
     score_map = {} # genename -> line values.
@@ -99,12 +103,18 @@ if __name__ == '__main__':
   
     # load gene network structure, and do association test.
 
+    # https://stackoverflow.com/questions/15777951/how-to-suppress-pandas-future-warning
+    import warnings
+    warnings.simplefilter(action='ignore', category=FutureWarning)
+
     from rpy2.robjects import r, pandas2ri
     # Need explicitly activate this, otherwise will fail.
     # https://pandas.pydata.org/pandas-docs/version/0.22/r_interface.html
     pandas2ri.activate()
     from rpy2.robjects import FloatVector,IntVector
     from rpy2.robjects.packages import importr
+    from rpy2.robjects import pandas2ri
+
     from scipy.stats import chi2
     import numpy as np
 

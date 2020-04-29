@@ -1,3 +1,11 @@
+# Restore the envirobment:
+# conda env create -n burden -f conda_burden.yml
+#
+# OR by install by conda:
+# conda create -n burden r-essentials r-base scipy pandas rpy2=2.9.4 docopt
+# conda activate burden
+# conda install -c conda-forge r-lmtest tzlocal
+
 cat test.gene.txt | python3 RareNetworkBurdenRPython.py -c COV1,COV2 -f test.ped.txt -p PHENO -i ID -n test.network.txt
 
 #GENES   BETAS   BETA_SE DF      CHISQ   PV
