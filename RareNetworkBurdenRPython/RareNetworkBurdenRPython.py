@@ -136,8 +136,17 @@ if __name__ == '__main__':
                 gnames = line.split()
 
                 new_df = df.copy(deep=True)
+                NUM_GENE = 0
                 for g in gnames:
-                    new_df[g] = score_map[g]
+                    if g in score_map: # some genes may don't have scores.
+                        new_df[g] = score_map[g]
+                        NUM_GENE += 1
+                if NUM_GENE < 2: # No enough data test for this network.
+                    sys.stdout.write('%s\t%s\t%s\t%s\n'%(','.join(gnames), 'NA', 
+                    'NA',
+                    '\t'.join(['NA','NA','NA'])))
+                    continue
+
                 # print(new_df)
                 # testing the alternative model and compare the LRT.
                 alt_model = sts.glm(PHENO_N + '~' + '+'.join(gnames + COVARS), family = link, data=new_df)
