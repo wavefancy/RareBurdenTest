@@ -57,6 +57,7 @@ if __name__ == '__main__':
     COVARS   = args['-c'].split(',') if args['-c'] else []
     PHENO_N  = args['-p']
     ID_N     = args['-i']
+    # pandas will auto impute the data type.
     df = pd.read_csv(args['-f'],sep=r'\s+')
     # check all covariates are in loaded phenotype and covariates files.
     m_cov = [c for c in COVARS + [PHENO_N, ID_N] if c not in df.columns]
@@ -94,11 +95,11 @@ if __name__ == '__main__':
                     title_map[y] = x
                 
                 # subset the df to the common ids.
-                id_subset = [(x in title_map) for x in df[ID_N]] # true/false array.
+                id_subset = [(str(x) in title_map) for x in df[ID_N]] # true/false array.
                 # print(id_subset)
                 df = df.loc[id_subset,] # update the dataframe to the subset.
                 # sample index in the score file.
-                id_index = [title_map[x] for x in df[ID_N]]
+                id_index = [title_map[str(x)] for x in df[ID_N]]
             else:
                 if ss[col_genename] in score_map:
                     sys.stderr.write('WARN: duplicated gene name in score file: %s\n'%(ss[3]))
@@ -177,6 +178,9 @@ if __name__ == '__main__':
                 sys.stdout.write('%s\t%s\t%s\t%s\n'%(','.join(gnames), ','.join(['%g'%(x) for x in beta]), 
                     ','.join(['%g'%(x) for x in betase]),
                     '\t'.join(['%g'%(x) for x in (degree, cs, pv)])))
+                
+                new_df = None
+                
 
 sys.stdout.flush()
 sys.stdout.close()
