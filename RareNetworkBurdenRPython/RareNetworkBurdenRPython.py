@@ -12,7 +12,7 @@
     @Author: wavefancy@gmail.com
 
     Usage:
-        RareNetworkBurdenRPython.py [-c txt] -f file -p pheno -i txt -n file
+        RareNetworkBurdenRPython.py [-c txt] -f file -p pheno -i txt -n file -g int
         RareNetworkBurdenRPython.py -h | --help | -v | --version | -f | --format
 
     Notes:
@@ -24,6 +24,7 @@
         -f file        Covariate and phenotype file.
         -p pheno       Column name for phenotype name.
         -i txt         Column name for individual names.
+        -g int         Column index for gene name, starts from 1.
         -n file        Network defining file, group genes, each group per line in file, white spaced.
         -h --help      Show this screen.
         -v --version   Show version.
@@ -76,6 +77,7 @@ if __name__ == '__main__':
     title = ''
     score_map = {} # genename -> line values.
     col_genename = 3
+    col_genename = int(args['-g']) -1
     id_index = [] # value index for each individual in cov file.
     for line in sys.stdin:
         line = line.strip()
@@ -90,16 +92,20 @@ if __name__ == '__main__':
                         sys.stderr.write('ERROR: duplicate title entries in score stream: %s\n'%(y))
                         sys.exit(-1)
                     title_map[y] = x
+                
                 # subset the df to the common ids.
                 id_subset = [(x in title_map) for x in df[ID_N]] # true/false array.
                 # print(id_subset)
                 df = df.loc[id_subset,] # update the dataframe to the subset.
+                # sample index in the score file.
                 id_index = [title_map[x] for x in df[ID_N]]
             else:
                 if ss[col_genename] in score_map:
-                    sys.stderr.write('ERROR: duplicated gene name in score file: %s\n'%(ss[3]))
+                    sys.stderr.write('WARN: duplicated gene name in score file: %s\n'%(ss[3]))
                 else:
-                    score_map[ss[col_genename]] = [ss[x] for x in id_index] # score for each individual, and align to the order of cov.
+                    scores = [float(ss[x]) for x in id_index]
+                    if sum(scores) > 0: # do not need to test if no rare variants.
+                        score_map[ss[col_genename]] = scores # score for each individual, and align to the order of cov.
   
     # load gene network structure, and do association test.
 
