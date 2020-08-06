@@ -118,7 +118,7 @@ for line in eachline(stdin)
         # names!(title, Symbol(idname))
         mytitle = ss[datacol:end]
         if SPAtest == true
-            out_title = vcat(ss[1:datacol], ["NS", "FRAC_WITH_RARE", "PVALUE", "BETA", "SEBETA", "WALD_PVALUE","SPLDATA"])
+            out_title = vcat(ss[1:datacol], ["NS", "FRAC_WITH_RARE", "SPA_PVALUE", "BETA", "SEBETA", "WALD_PVALUE","SPLDATA"])
         else
             out_title = vcat(ss[1:datacol], ["NS", "FRAC_WITH_RARE", "PVALUE", "BETA", "SEBETA", "ZSTAT"])
         end
